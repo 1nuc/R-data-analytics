@@ -1,0 +1,354 @@
+---
+title: "Extra Features on Asthma data set"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+date: "2024-09-02"
+---
+
+#### ***Student***:Ahmed Ali Saleh Ali Alyafai
+#### ***TP Number***: TP074799
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Importing the dataset, echo=FALSE}
+data_set=read.csv("C:\\Users\\Ahmed\\Desktop\\PFDA_Assignment\\Cleaned_asthma_dataset.csv",header=TRUE)
+
+```
+
+### ***Aim***
+In this section, we will analyze the Asthma dataset to study the impact of various variables on determining the value of Diet Quality.
+
+We will start by applying statistical tests to identify which variables have the most significant impact on Diet Quality.
+
+
+
+### ***Procedure***
+To achieve our aim, we will use the following methods:
+
+T-tests: These will be used to examine the relationship between Diet Quality and the variables that are categorical or close to categorical (e.g., Gender_P, Ethnicity_P).
+Correlation Tests: These will be applied to the numerical variables to check for any significant relationships with Diet. 
+
+We will focus on variables with a p-value less than or equal to 0.001, which indicates a strong significance in their impact on Diet Quality.
+
+
+
+### ***Code*** 
+```{r Investigation, echo=TRUE}
+Integer_N <- c("Gender_P", "Ethnicity_P", "FamilyHistoryAsthma_P",
+               "HayFever_P", "GastroesophagealReflux_P",
+               "Eczema_P", "Wheezing_P", 
+               "ShortnessOfBreath_P", "ChestTightness_P", "Coughing_P", 
+               "NighttimeSymptoms_P", "ExerciseInduced_P", "HistoryOfAllergies_P")
+
+Numeric_N <- c("BMI_P","Age_P", "PhysicalActivity_P", "SleepQuality_P",
+              "DustExposure_P", "LungFunctionFVC_P",
+               "LungFunctionFEV1_P")
+
+for (r in Numeric_N){
+  test <- cor.test(data_set$DietQuality_P, data_set[[r]], method = "pearson")
+  if(test$p.value <=.001){
+    print(paste("There is a relationship between Diet Quality and ",r))    
+  }  
+}
+for (i in Integer_N){
+  
+  a_test <- t.test(data_set$DietQuality_P , data_set[[i]], alternative = "two.sided", conf.level = .95)
+  if(a_test$p.value <= .001){
+    print(paste("There is a relationship between Diet Quality and ",i))    
+    
+  }
+}
+
+```
+
+### ***Physical Activity impact on Diet Quality***
+
+Next, we will take a closer look at the relationship between Diet Quality and Physical Activity. We will examine the frequency of values to estimate a relationship model.
+
+The plot generated below shows the relationship between Diet Quality and Physical Activity.
+
+```{r Regererssion Model, echo=TRUE}
+library(ggplot2)
+ggplot(data_set, aes(x=DietQuality_P, y= PhysicalActivity_P))+geom_jitter(alpha=.2, color="blue")+
+  geom_smooth(method = "lm", color="yellow", se=TRUE)+
+  labs(title = "counts of Diet Quality vs Physical activity by Diet adherence",
+                                                           x="Diet Quality",
+                                                           y="Physical activity")
+```
+As illustrated in the plot, there is a negative linear relationship between Physical Activity and Diet Quality. This indicates that as Diet Quality increases, Physical Activity tends to decrease.
+
+
+### ***Accuracy in findings***
+
+To further analyze, we partitioned the DietQuality_P and PhysicalActivity_P columns into two levels—High and Low—based on the median values. This partitioning helps us evaluate how these categories interact and influence one another.
+
+
+```{r Median, echo=TRUE}
+Occurrance <- function(variable){
+  Occurrance_V <- median(data_set[[variable]])
+  return(Occurrance_V)
+}
+High_Diet <- subset(data_set, data_set$DietQuality_P >= Occurrance("DietQuality_P"))
+Low_Diet <- subset(data_set, data_set$DietQuality_P < Occurrance("DietQuality_P"))
+
+
+High_Diet_Act= nrow(subset(High_Diet, High_Diet$PhysicalActivity_P >= Occurrance("PhysicalActivity_P")))
+High_Diet_L_Act= nrow(subset(High_Diet, High_Diet$PhysicalActivity_P <= Occurrance("PhysicalActivity_P")))
+Low_Diet_H_Act= nrow(subset(Low_Diet, Low_Diet$PhysicalActivity_P >= Occurrance("PhysicalActivity_P")))
+Low_Diet_Act= nrow(subset(Low_Diet, Low_Diet$PhysicalActivity_P <= Occurrance("PhysicalActivity_P")))
+
+```
+
+### ***Findings Representation***
+
+The following table summarizes the rate at which high and low levels of Diet Quality and Physical Activity occur together:
+
+
+```{r Data frame}
+data_frame <- data.frame(
+  Diet_status=rep(c("High","low"),times=2),
+  Physical_Activity_status= rep(c("High","Low"), each=2),
+  Percentage=c(High_Diet_Act / nrow(High_Diet)
+              , Low_Diet_H_Act / nrow(Low_Diet), 
+              High_Diet_L_Act / nrow(High_Diet), 
+              Low_Diet_Act / nrow(Low_Diet))
+)
+data_frame
+```
+
+### ***Visualization***
+
+The bar plot below visualizes the Percentage of Physical Activity, categorized by Diet Quality. The plot highlights how frequently high or low Physical Activity levels occur in conjunction with high or low Diet Quality levels.
+
+
+
+```{r plot, echo=TRUE}
+options(repr.plot.width=8,repr.plot.height=6)
+ggplot(data_frame, aes(x= Diet_status, y=Percentage, fill=Physical_Activity_status))+ 
+  geom_bar(stat="identity", position = "dodge")+
+  labs(title = "counts of Physical activity ordered by Diet Quality",
+       x="Health Status",
+       y="Percentage")+
+  scale_fill_manual(values = c("blue","orange"))
+```
+
+### ***Impact on asthma risk***
+now we will see how those figure impact the probability of getting an ashtma
+the figure below shows the distribution of asthma occurrences among the findings resulted above 
+```{r,echo=FALSE}
+High_Diet_Act= (subset(High_Diet, High_Diet$PhysicalActivity_P >= Occurrance("PhysicalActivity_P")))
+High_Diet_L_Act=(subset(High_Diet, High_Diet$PhysicalActivity_P <= Occurrance("PhysicalActivity_P")))
+Low_Diet_H_Act= (subset(Low_Diet, Low_Diet$PhysicalActivity_P >= Occurrance("PhysicalActivity_P")))
+Low_Diet_Act= (subset(Low_Diet, Low_Diet$PhysicalActivity_P <= Occurrance("PhysicalActivity_P")))
+```
+
+```{r, echo=TRUE}
+data_frame_asthma <- data.frame(
+  Diet_Physical_status = rep(c("High_Diet & Activity","High_Diet_Low_Activity","Low_Diet_High_Activity","Low_Diet & Activity"),times=2),
+  asthma_status  = rep(c("diagnosed","Healthy"), each=4),
+  Rate=c(nrow(subset(High_Diet_Act, Diagnosis_P==1)) / nrow(High_Diet_Act),
+         nrow(subset(High_Diet_L_Act, Diagnosis_P==1))/ nrow(High_Diet_L_Act),
+         nrow(subset(Low_Diet_H_Act, Diagnosis_P==1)) /nrow(Low_Diet_H_Act),
+         nrow(subset(Low_Diet_Act, Diagnosis_P==1)) /nrow(Low_Diet_Act),
+         nrow(subset(High_Diet_Act, Diagnosis_P==0)) / nrow(High_Diet_Act),
+         nrow(subset(High_Diet_L_Act ,Diagnosis_P==0))/ nrow(High_Diet_L_Act),
+         nrow(subset(Low_Diet_H_Act,Diagnosis_P==0)) /nrow(Low_Diet_H_Act),
+         nrow(subset(Low_Diet_Act ,Diagnosis_P==0)) /nrow(Low_Diet_Act))
+)
+data_frame_asthma
+```
+#### ***Lets visualize the findings***
+
+```{r, echo=FALSE}
+ggplot(data_frame_asthma, aes(x=asthma_status, y= Rate, fill=Diet_Physical_status))+geom_bar(stat="identity", width=.8, color="black")+
+  geom_text(aes(label = scales::percent(Rate, accuracy = .1)), position = position_stack(vjust = .5),size = 3, color="white")+
+  scale_fill_manual(values = c("darkgreen","red","black","orange"))+ facet_wrap(~Diet_Physical_status)+
+theme_minimal()
+
+```
+
+### ***Gender-Based Diet Quality Distribution***
+Finally, we explore the distribution of Diet Quality by gender. This section analyzes how Diet Quality is distributed among males and females, within both high and low diet quality groups.
+```{r, echo=TRUE}
+High_Diet_M <- nrow(subset(High_Diet, High_Diet$Gender_P == 0))
+High_Diet_W <- nrow(subset(High_Diet, High_Diet$Gender_P == 1))
+Low_Diet_M <- nrow(subset(Low_Diet, Low_Diet$Gender_P == 0))
+Low_Diet_W <- nrow(subset(Low_Diet, Low_Diet$Gender_P == 1))
+
+```
+```{r}
+data_frame_G <- data.frame(
+  Diet_status = rep(c("High", "Low"), times = 2),
+  Gender_Kind = rep(c("Male", "Female"), each = 2),
+  Rate = c(High_Diet_M / nrow(data_set[data_set$Gender_P == 0, ]),
+           Low_Diet_M / nrow(data_set[data_set$Gender_P == 0, ]), 
+           High_Diet_W / nrow(data_set[data_set$Gender_P == 1, ]), 
+           Low_Diet_W / nrow(data_set[data_set$Gender_P == 1, ]))
+)
+data_frame_G
+```
+### ***Visualization***
+The pie charts below visualize the distribution of Diet Quality by gender, showing the proportion of males and females within high and low diet quality groups.
+
+```{r}
+
+ggplot(data_frame_G, aes(x = "", y = Rate, fill = Gender_Kind)) + 
+  geom_col(color = "black") + 
+  coord_polar(theta = "y") + 
+  facet_wrap(~ Diet_status) +
+  labs(title = "Diet Status Distribution by Gender") +
+  theme_void() +
+  theme(legend.position = "right")+geom_text(aes(label = scales::percent(Rate, accuracy = 0.1)), 
+                                               position = position_stack(vjust = 0.5), size = 3)
+
+
+```
+
+
+
+
+
+
+
+### ***Now see lets the distribution fo asthma based Gender and diet quality***
+
+here below we create a data frame to assign the values for easy plotting 
+```{r,echo=TRUE}
+High_Diet_M = subset(High_Diet, High_Diet$Gender_P == 0)
+High_Diet_W = subset(High_Diet, High_Diet$Gender_P == 1)
+Low_Diet_M = subset(Low_Diet, Low_Diet$Gender_P == 0)
+Low_Diet_W = subset(Low_Diet, Low_Diet$Gender_P == 1)
+
+data_frame_gender_asthma <- data.frame(
+  Gender_Diet_status = rep(c("High_Diet_Male", "High_Diet_Female", "Low_Diet_Male", "Low_Diet_Female"), times = 2),
+  asthma_status = rep(c("diagnosed", "Healthy"), each = 4),
+  Rate = c(
+    nrow(subset(High_Diet_M, Diagnosis_P == 1)) / nrow(High_Diet_M),   # High Diet Male - Diagnosed
+    nrow(subset(High_Diet_W, Diagnosis_P == 1)) / nrow(High_Diet_W),   # High Diet Female - Diagnosed
+    nrow(subset(Low_Diet_M, Diagnosis_P == 1)) / nrow(Low_Diet_M),     # Low Diet Male - Diagnosed
+    nrow(subset(Low_Diet_W, Diagnosis_P == 1)) / nrow(Low_Diet_W),     # Low Diet Female - Diagnosed
+    nrow(subset(High_Diet_M, Diagnosis_P == 0)) / nrow(High_Diet_M),   # High Diet Male - Healthy
+    nrow(subset(High_Diet_W, Diagnosis_P == 0)) / nrow(High_Diet_W),   # High Diet Female - Healthy
+    nrow(subset(Low_Diet_M, Diagnosis_P == 0)) / nrow(Low_Diet_M),     # Low Diet Male - Healthy
+    nrow(subset(Low_Diet_W, Diagnosis_P == 0)) / nrow(Low_Diet_W)      # Low Diet Female - Healthy
+  )
+)
+
+```
+
+
+### ***and now lets visualize the findings***
+
+```{r}
+ggplot(data_frame_gender_asthma, aes(x = asthma_status, y = Rate, fill = Gender_Diet_status)) +
+  geom_bar(stat = "identity", width = .8, color = "black") +
+  geom_text(aes(label = scales::percent(Rate, accuracy = .1)), position = position_stack(vjust = .5), size = 3, color = "white") +
+  scale_fill_manual(values = c("pink", "darkblue", "pink", "darkblue")) +
+  facet_wrap(~ Gender_Diet_status) +
+  theme_minimal()
+
+
+```
+
+
+
+
+
+### ***Ethnicity-Based Diet Quality Distribution***
+
+We now explore the distribution of Diet Quality by ethnicity. This section analyzes how Diet Quality is distributed among different ethnic groups, within both high and low diet quality groups.
+
+```{r, echo=TRUE}
+data_Frame_E <- data.frame(
+  Diet_status = rep(c("High", "Low"), each = 4),
+  Ethnicity = rep(c("Caucasian", "African_American", "Asian", "Other"), times = 2),
+  Precentage = c(
+    (nrow(High_Diet[High_Diet$Ethnicity_P == 0,]) / nrow(data_set[data_set$Ethnicity_P == 0,])) ,  # Caucasian
+    (nrow(High_Diet[High_Diet$Ethnicity_P == 1,]) / nrow(data_set[data_set$Ethnicity_P == 1,])),  # African_American
+    (nrow(High_Diet[High_Diet$Ethnicity_P == 2,]) / nrow(data_set[data_set$Ethnicity_P == 2,])),  # Asian
+    (nrow(High_Diet[High_Diet$Ethnicity_P == 3,]) / nrow(data_set[data_set$Ethnicity_P == 3,])),  # Other
+    (nrow(Low_Diet[Low_Diet$Ethnicity_P == 0,]) / nrow(data_set[data_set$Ethnicity_P == 0,])),    # Caucasian (Low Diet)
+    (nrow(Low_Diet[Low_Diet$Ethnicity_P == 1,]) / nrow(data_set[data_set$Ethnicity_P == 1,])),    # African_American (Low Diet)
+    (nrow(Low_Diet[Low_Diet$Ethnicity_P == 2,]) / nrow(data_set[data_set$Ethnicity_P == 2,])),    # Asian (Low Diet)
+    (nrow(Low_Diet[Low_Diet$Ethnicity_P == 3,]) / nrow(data_set[data_set$Ethnicity_P == 3,]))     # Other (Low Diet)
+  )
+)
+```
+
+### ***Visualization***
+```{r,echo=TRUE}
+data_Frame_E
+
+ggplot(data_Frame_E, aes(x=Diet_status, y=Precentage, fill=Ethnicity)) + 
+  geom_bar(stat="identity", width=.8, color="black") +
+  geom_text(aes(label = scales::percent(Precentage, accuracy = 0.1)), 
+            position = position_stack(vjust = 0.5), size = 3, color="white") +
+  scale_fill_manual(values = c("darkred","darkgreen", "darkblue", "darkorange")) + 
+  facet_wrap(~Ethnicity) + 
+  labs(title = "Diet Status Distribution by Ethnicity", 
+       x="Diet Status", 
+       y="Percentage") +
+  theme_minimal()
+```
+
+### ***Lets look to the asthma distribution based Diet and Ethnicity***
+
+### ***we first create a data frame***
+
+```{r,echo=TRUE}
+High_Diet_Caucasian = subset(High_Diet, High_Diet$Ethnicity_P == 0)
+High_Diet_African_American = subset(High_Diet, High_Diet$Ethnicity_P == 1)
+High_Diet_Asian = subset(High_Diet, High_Diet$Ethnicity_P == 2)
+High_Diet_Other = subset(High_Diet, High_Diet$Ethnicity_P == 3)
+
+Low_Diet_Caucasian = subset(Low_Diet, Low_Diet$Ethnicity_P == 0)
+Low_Diet_African_American = subset(Low_Diet, Low_Diet$Ethnicity_P == 1)
+Low_Diet_Asian = subset(Low_Diet, Low_Diet$Ethnicity_P == 2)
+Low_Diet_Other = subset(Low_Diet, Low_Diet$Ethnicity_P == 3)
+
+data_frame_ethnicity_asthma <- data.frame(
+  Ethnicity_Diet_status = rep(c("High_Diet_Caucasian", "High_Diet_African_American", "High_Diet_Asian", "High_Diet_Other", 
+                                "Low_Diet_Caucasian", "Low_Diet_African_American", "Low_Diet_Asian", "Low_Diet_Other"), times = 2),
+  asthma_status = rep(c("diagnosed", "Healthy"), each = 8),
+  Rate = c(
+    nrow(subset(High_Diet_Caucasian, Diagnosis_P == 1)) / nrow(High_Diet_Caucasian),   
+    nrow(subset(High_Diet_African_American, Diagnosis_P == 1)) / nrow(High_Diet_African_American),  
+    nrow(subset(High_Diet_Asian, Diagnosis_P == 1)) / nrow(High_Diet_Asian),           
+    nrow(subset(High_Diet_Other, Diagnosis_P == 1)) / nrow(High_Diet_Other),        
+    nrow(subset(Low_Diet_Caucasian, Diagnosis_P == 1)) / nrow(Low_Diet_Caucasian),     
+    nrow(subset(Low_Diet_African_American, Diagnosis_P == 1)) / nrow(Low_Diet_African_American),
+    nrow(subset(Low_Diet_Asian, Diagnosis_P == 1)) / nrow(Low_Diet_Asian),
+    nrow(subset(Low_Diet_Other, Diagnosis_P == 1)) / nrow(Low_Diet_Other),
+    nrow(subset(High_Diet_Caucasian, Diagnosis_P == 0)) / nrow(High_Diet_Caucasian),
+    nrow(subset(High_Diet_African_American, Diagnosis_P == 0)) / nrow(High_Diet_African_American),
+    nrow(subset(High_Diet_Asian, Diagnosis_P == 0)) / nrow(High_Diet_Asian),
+    nrow(subset(High_Diet_Other, Diagnosis_P == 0)) / nrow(High_Diet_Other),
+    nrow(subset(Low_Diet_Caucasian, Diagnosis_P == 0)) / nrow(Low_Diet_Caucasian),
+    nrow(subset(Low_Diet_African_American, Diagnosis_P == 0)) / nrow(Low_Diet_African_American),
+    nrow(subset(Low_Diet_Asian, Diagnosis_P == 0)) / nrow(Low_Diet_Asian),
+    nrow(subset(Low_Diet_Other, Diagnosis_P == 0)) / nrow(Low_Diet_Other)
+  )
+)
+```
+
+
+
+### ***Visualization***
+
+```{r,echo=TRUE}  
+ggplot(data_frame_ethnicity_asthma, aes(x = asthma_status, y = Rate, fill = Ethnicity_Diet_status)) +
+    geom_bar(stat = "identity", width = .8, color = "black") +
+    geom_text(aes(label = scales::percent(Rate, accuracy = .1)), position = position_stack(vjust = .5), size = 3, color = "white") +
+    scale_fill_manual(values = c("darkred", "darkgreen", "darkblue", "darkorange", "darkgray", "purple", "darkcyan", "black")) +
+    facet_wrap(~ Ethnicity_Diet_status) +
+    theme_minimal()
+
+```
+
+### ***conclusion***
+
+The analysis revealed a strong relationship between diet quality, physical activity, and asthma risk. A negative correlation was found between diet quality and physical activity, suggesting that individuals with better diets tend to exercise less. Asthma risk was higher among those with low diet quality and low physical activity, while those with high diet quality and high physical activity showed lower asthma prevalence. Gender and ethnicity also influenced diet quality, with males and Caucasians exhibiting higher adherence to healthy diets. Overall, the findings underscore the importance of maintaining a healthy diet and active lifestyle in reducing asthma risk.
